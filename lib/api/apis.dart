@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:http/http.dart';
 
 class Network {
@@ -16,10 +18,28 @@ class Network {
   }
 }
 
+class KachelmannApi {
+  Future<dynamic> getMeasurements() async {
+    if (false) {
+      Network network =
+      Network(
+          'https://us-central1-reliefprint-159213.cloudfunctions.net/rain_forecast?city_id=2657896');
+      return await network.getData();
+    } else {
+      var items = [800, 16];
+      var rng = new Random();
+      for (var i = 0; i < 24; i++) {
+        items.add(rng.nextInt(10));
+      }
+      return items.join(',');
+    }
+  }
+}
+
 class NetatmoApi {
   Future<dynamic> getMeasurements() async {
     Network network =
-        Network('http://muehlemann.com/kitchendisplay/netatmo.php');
+    Network('http://muehlemann.com/kitchendisplay/netatmo.php');
     var temperature = await network.getData();
     return temperature;
   }

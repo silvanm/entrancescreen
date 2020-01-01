@@ -97,7 +97,7 @@ class _TimetableWidgetState extends State<TimetableWidget> {
 
       downCol.add(Container(
           padding: const EdgeInsets.fromLTRB(12.0, 6, 12.0, 0),
-          child: Text('HERUNTER')));
+          child: Text('HINUNTER')));
       upCol.add(Container(
           padding: const EdgeInsets.fromLTRB(12.0, 6, 12.0, 0),
           child: Text('HINAUF')));

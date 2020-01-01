@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -109,4 +111,36 @@ class Timetable {
     buffer.write("ff" + hexString.substring(0, 6));
     return Color(int.parse(buffer.toString(), radix: 16));
   }
+}
+
+Rainforecast _rainforecastFromString(String str) {
+  List<String> items = str.split(',');
+  // the list first 2 items are the current time and a threshold for ESP32. Discard that.
+  items.removeRange(0, 2);
+  items.removeRange(8, items.length);
+  var i = 0;
+  var now = DateTime.now();
+  var rainforecastEntries = <RainforecastEntry>[];
+  for (String item in items) {
+    rainforecastEntries.add(new RainforecastEntry(now.add(new Duration(hours: i)), double.parse(item)));
+    i += 3;
+  }
+  return new Rainforecast(millimeters: rainforecastEntries);
+}
+
+class Rainforecast {
+  List<RainforecastEntry> millimeters;
+  Rainforecast({this.millimeters});
+  factory Rainforecast.fromString(String str) => _rainforecastFromString(str);
+
+  double maxMillimeters() {
+    return millimeters.reduce((value, element) => (element.millimeters > value.millimeters) ? element : value ).millimeters;
+  }
+}
+
+class RainforecastEntry {
+  final DateTime date;
+  final double millimeters;
+
+  RainforecastEntry(this.date, this.millimeters);
 }

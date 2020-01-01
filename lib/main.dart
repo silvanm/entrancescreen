@@ -53,6 +53,10 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   Light _light;
   int _luxValue;
+  final luxHigherThreshold = 10;
+  final luxLowerThreshold = 4;
+  bool _displayOff = false;
+
   StreamSubscription _subscription;
 
   void startListening() {
@@ -83,14 +87,20 @@ class _MyHomePageState extends State<MyHomePage> {
     print("Lux value from Light Sensor: $luxValue");
     setState(() {
       _luxValue = luxValue;
+
+      // Hysteresis
+      if (!_displayOff && _luxValue < luxLowerThreshold) {
+        _displayOff = true;
+      }
+      if (_displayOff && _luxValue > luxHigherThreshold) {
+        _displayOff = false;
+      }
     });
   }
 
-
-
   @override
   Widget build(BuildContext context) {
-    if (_luxValue != null && _luxValue < 10) {
+    if (_displayOff) {
       return Scaffold();
     } else {
       return Scaffold(

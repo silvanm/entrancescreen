@@ -31,6 +31,7 @@ dependencies:
   flutter_spinkit: ^4.1.1
   screen: ^0.0.5
   light: ^0.1.1
+  charts_flutter: ^0.8.1
 
 dev_dependencies:
   flutter_test:
