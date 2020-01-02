@@ -53,8 +53,8 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   Light _light;
   int _luxValue;
-  final luxHigherThreshold = 10;
-  final luxLowerThreshold = 4;
+  final luxHigherThreshold = 3;
+  final luxLowerThreshold = 1;
   bool _displayOff = false;
 
   StreamSubscription _subscription;
@@ -100,47 +100,59 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    Positioned luxValueWidget = Positioned(
+      child: new Align(
+          alignment: FractionalOffset.bottomCenter,
+          child: Text('${_luxValue}',
+              style: TextStyle(color: Colors.grey, fontSize: 10))),
+    );
     if (_displayOff) {
-      return Scaffold();
+      return Scaffold(
+          body: Stack(
+        children: <Widget>[luxValueWidget],
+      ));
     } else {
       return Scaffold(
-        body: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: <Widget>[
-            Column(
-              children: <Widget>[
-                Icon(
-                  Icons.directions_bus,
-                  color: Colors.grey,
-                  size: 36.0,
-                ),
-                TimetableWidget(),
-              ],
-            ),
-            Column(
-              children: <Widget>[
-                Icon(
-                  Icons.access_time,
-                  size: 36.0,
-                  color: Colors.grey,
-                ),
-                DigitalClock(),
-              ],
-            ),
-            Column(
-              children: <Widget>[
-                ForecastWidget(key: key),
-              ],
-            ),
-          ],
-        ),
-        /*floatingActionButton: FloatingActionButton(
+          body: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: <Widget>[
+          Column(
+            children: <Widget>[
+              Icon(
+                Icons.directions_bus,
+                color: Colors.grey,
+                size: 36.0,
+              ),
+              TimetableWidget(),
+            ],
+          ),
+          Column(
+            children: <Widget>[
+              Icon(
+                Icons.access_time,
+                size: 36.0,
+                color: Colors.grey,
+              ),
+              DigitalClock(),
+            ],
+          ),
+          Column(
+            children: <Widget>[
+              ForecastWidget(key: key),
+            ],
+          ),
+          Stack(
+            children: <Widget>[luxValueWidget],
+          ),
+        ],
+      )
+          /*floatingActionButton: FloatingActionButton(
         onPressed: () => key.currentState.refreshData(),
         tooltip: 'Refresh',
         child: Icon(Icons.refresh),
       ), // This trailing comma makes auto-formatting nicer for build methods.
        */
-      );
+          );
     }
   }
 }

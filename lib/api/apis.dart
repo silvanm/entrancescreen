@@ -20,7 +20,7 @@ class Network {
 
 class KachelmannApi {
   Future<dynamic> getMeasurements() async {
-    if (false) {
+    if (true) {
       Network network =
       Network(
           'https://us-central1-reliefprint-159213.cloudfunctions.net/rain_forecast?city_id=2657896');
