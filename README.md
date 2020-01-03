@@ -1,16 +1,16 @@
-# entrancescreen
+# Entrance-Screen
 
-Screen on the Entrance at the Erlenstrasse
+My first Flutter project.
 
-## Getting Started
+Highly customized screen for the entrance of our appartment showing:
 
-This project is a starting point for a Flutter application.
+- Know when to hurry up: the next departures of the bus next to our house
+- Know if you'll be late for the meeting: the current time and date
+- Know what to wear: the temperature outside the house using the Netatmo sensors and API and the
+  forecasted temperature and current weather coming from http://meteo.search.ch
+- Know whether I need to take the rain gear with me: Rain forecast scraped from
+  https://kachelmannwetter.com
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
-
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Additional feature:
+- if the light sensor reports darkness, the display turns off. Reason: The screen can be seen
+  through the window. We don't want to attract curious people during the night

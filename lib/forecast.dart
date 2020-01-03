@@ -45,7 +45,7 @@ class ForecastWidgetState extends State<ForecastWidget> {
     getForecast();
     setState(() {
       _timer = Timer(
-        Duration(minutes: 1),
+        Duration(minutes: 5),
         refreshData,
       );
     });
