@@ -101,7 +101,7 @@ class ForecastWidgetState extends State<ForecastWidget> {
             children: <Widget>[
               Icon(
                 WeatherIcons.thermometer_exterior,
-                size: 28,
+                size: 24,
               ),
               Padding(
                 padding: EdgeInsets.only(right: 5),

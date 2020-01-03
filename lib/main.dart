@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:entrancescreen/forecast.dart';
 import 'package:entrancescreen/timetable.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -22,7 +23,6 @@ class MyApp extends StatelessWidget {
       bodyColor: Colors.white,
       displayColor: Colors.white,
     );
-
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
@@ -53,7 +53,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   Light _light;
   int _luxValue;
-  final luxHigherThreshold = 3;
+  final luxHigherThreshold = 2;
   final luxLowerThreshold = 1;
   bool _displayOff = false;
 
@@ -74,7 +74,11 @@ class _MyHomePageState extends State<MyHomePage> {
     initializeDateFormatting('de_CH', null).then((_) => {});
     Screen.keepOn(true);
     SystemChrome.setEnabledSystemUIOverlays([]);
-    startListening();
+    if (!kIsWeb) {
+      startListening();
+    } else {
+      _luxValue = 50;
+    }
   }
 
   @override
