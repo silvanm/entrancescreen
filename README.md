@@ -2,7 +2,9 @@
 
 My first Flutter project.
 
-Highly customized screen for the entrance of our appartment showing:
+![screenshot](docs/screenshot.png)
+
+Highly customized screen for the entrance of our house showing:
 
 - Know when to hurry up: the next departures of the bus next to our house
 - Know if you'll be late for the meeting: the current time and date
