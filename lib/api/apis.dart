@@ -19,17 +19,17 @@ class Network {
 }
 
 class KachelmannApi {
-  Future<dynamic> getMeasurements() async {
-    if (true) {
-      Network network =
-      Network(
+  Future<dynamic> getMeasurements([bool debug=false]) async {
+    if (!debug) {
+      Network network = Network(
           'https://us-central1-reliefprint-159213.cloudfunctions.net/rain_forecast?city_id=2657896');
       return await network.getData();
     } else {
-      var items = [800, 16];
+      // generate random values
+      List<double>items = <double>[800, 16];
       var rng = new Random();
       for (var i = 0; i < 24; i++) {
-        items.add(rng.nextInt(10));
+        items.add(rng.nextDouble() * 2);
       }
       return items.join(',');
     }
@@ -39,7 +39,7 @@ class KachelmannApi {
 class NetatmoApi {
   Future<dynamic> getMeasurements() async {
     Network network =
-    Network('http://muehlemann.com/kitchendisplay/netatmo.php');
+        Network('http://muehlemann.com/kitchendisplay/netatmo.php');
     var temperature = await network.getData();
     return temperature;
   }

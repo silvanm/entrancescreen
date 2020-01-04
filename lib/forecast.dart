@@ -4,9 +4,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:entrancescreen/api/apis.dart';
 import 'package:entrancescreen/models/models.dart';
+import 'package:scoped_model/scoped_model.dart';
 import 'package:weather_icons/weather_icons.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
+
+import 'models/rainforecast.dart';
 
 class ForecastWidget extends StatefulWidget {
   ForecastWidget({Key key, this.title}) : super(key: key);
@@ -134,14 +137,20 @@ class ForecastWidgetState extends State<ForecastWidget> {
               ),
             ],
           ),
-          Text(
-            '${forecast.weatherDescription.toUpperCase()}',
-            style: Theme.of(context).textTheme.title,
+          Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              '${forecast.weatherDescription.toUpperCase()}',
+              style: Theme.of(context).textTheme.title,
+            ),
           ),
           Container(
-            height: 50,
-            child: RainforecastWidget(),
-          )
+              height: 50,
+              child: ScopedModelDescendant<Rainforecast>(builder:
+                  (BuildContext context, Widget child,
+                      Rainforecast rainforecast) {
+                return RainforecastWidget(rainforecast: rainforecast);
+              }))
         ],
       );
     } else {
@@ -158,55 +167,20 @@ class ForecastWidgetState extends State<ForecastWidget> {
   }
 }
 
-class RainforecastWidget extends StatefulWidget {
-  RainforecastWidget({Key key, this.title}) : super(key: key);
+class RainforecastWidget extends StatelessWidget {
+  RainforecastWidget({Key key, this.title, this.rainforecast})
+      : super(key: key);
 
   final String title;
-
-  @override
-  RainforecastWidgetState createState() => RainforecastWidgetState();
-}
-
-class RainforecastWidgetState extends State<RainforecastWidget> {
-  Rainforecast rainforecast = Rainforecast();
-  Timer _timer;
+  final Rainforecast rainforecast;
 
   List<charts.Series> seriesList;
   final bool animate = true;
 
-  void refreshData() async {
-    var result = await KachelmannApi().getMeasurements();
-    setState(() {
-      rainforecast = Rainforecast.fromString(result);
-      this.seriesList = _prepareRainforecastData();
-      print(rainforecast);
-      _timer = Timer(
-        Duration(minutes: 30),
-        refreshData,
-      );
-    });
-  }
-
-  @override
-  void initState() {
-    this.seriesList = _prepareRainforecastData();
-    super.initState();
-    refreshData();
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (seriesList != null &&
-        seriesList.length > 0 &&
-        seriesList[0].data != null &&
-        rainforecast.maxMillimeters() > 0
-    ) {
+    if ((rainforecast.maxMillimeters() ?? 0) > 0) {
+      seriesList = _prepareRainforecastData();
       return new charts.BarChart(
         seriesList,
         animate: animate,
@@ -222,10 +196,10 @@ class RainforecastWidgetState extends State<RainforecastWidget> {
         /// ordinal domain axis (use NumericAxisSpec or DateTimeAxisSpec for
         /// other charts).
         domainAxis: new charts.OrdinalAxisSpec(
-            // Make sure that we draw the domain axis line.
-            showAxisLine: true,
-            // But don't draw anything else.
-        //    renderSpec: new charts.NoneRenderSpec()
+          // Make sure that we draw the domain axis line.
+          showAxisLine: true,
+          // But don't draw anything else.
+          //    renderSpec: new charts.NoneRenderSpec()
         ),
 
         // With a spark chart we likely don't want large chart margins.

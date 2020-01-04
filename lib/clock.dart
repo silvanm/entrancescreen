@@ -70,7 +70,7 @@ class _DigitalClockState extends State<DigitalClock> {
               ':',
               style: textStyle.apply(
                   color:
-                  (_dateTime.second % 2) == 0 ? Colors.black : Colors.white),
+                  (_dateTime.second % 2) == 0 ? Colors.transparent : Colors.white),
             ),
             Text(
               '$minute',

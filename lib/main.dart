@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:entrancescreen/forecast.dart';
+import 'package:entrancescreen/models/rainforecast.dart';
 import 'package:entrancescreen/timetable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:light/light.dart';
+import 'package:scoped_model/scoped_model.dart';
 import 'package:screen/screen.dart';
 import 'clock.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -17,6 +20,7 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    final Rainforecast _rainforecast = Rainforecast();
     final latoTheme = GoogleFonts.latoTextTheme();
 
     final newTextTheme = latoTheme.apply(
@@ -28,22 +32,28 @@ class MyApp extends StatelessWidget {
       DeviceOrientation.portraitDown,
     ]);
 
-    return MaterialApp(
-      title: 'EntranceScreen',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        canvasColor: Colors.black,
-        textTheme: newTextTheme,
-      ),
-      home: MyHomePage(title: 'Mühlemann\'s Entrance Screen'),
-    );
+    return ScopedModel<Rainforecast>(
+        model: _rainforecast,
+        child: MaterialApp(
+            title: 'EntranceScreen',
+            theme: ThemeData(
+              brightness: Brightness.dark,
+              canvasColor: Colors.black,
+              textTheme: newTextTheme,
+            ),
+            home: MyHomePage(
+              title: 'Mühlemann\'s Entrance Screen',
+              rainforecast: _rainforecast,
+            )));
   }
 }
 
 final key = new GlobalKey<ForecastWidgetState>();
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
+  final Rainforecast rainforecast;
+
+  MyHomePage({Key key, this.title, this.rainforecast}) : super(key: key);
   final String title;
 
   @override
@@ -56,6 +66,8 @@ class _MyHomePageState extends State<MyHomePage> {
   final luxHigherThreshold = 2;
   final luxLowerThreshold = 1;
   bool _displayOff = false;
+  Timer _timer;
+  double _maxMillimeters = 0;
 
   StreamSubscription _subscription;
 
@@ -74,6 +86,7 @@ class _MyHomePageState extends State<MyHomePage> {
     initializeDateFormatting('de_CH', null).then((_) => {});
     Screen.keepOn(true);
     SystemChrome.setEnabledSystemUIOverlays([]);
+    refreshData();
     if (!kIsWeb) {
       startListening();
     } else {
@@ -81,9 +94,21 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  void refreshData() {
+    widget.rainforecast.refresh();
+    setState(() {
+      _maxMillimeters = widget.rainforecast.maxMillimeters();
+      _timer = Timer(
+        Duration(minutes: 10),
+        refreshData,
+      );
+    });
+  }
+
   @override
   void dispose() {
     _subscription.cancel();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -110,6 +135,16 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Text('${_luxValue}',
               style: TextStyle(color: Colors.grey, fontSize: 10))),
     );
+
+    // generate background color considering the rain
+    const fullColorAt = 5;
+    Color backgroundColor = Color.fromRGBO(
+        0,
+        0,
+        255,
+        [fullColorAt, widget.rainforecast.maxMillimeters(12) ?? 0].reduce(min) /
+            fullColorAt);
+
     if (_displayOff) {
       return Scaffold(
           body: Stack(
@@ -117,39 +152,40 @@ class _MyHomePageState extends State<MyHomePage> {
       ));
     } else {
       return Scaffold(
+          backgroundColor: backgroundColor,
           body: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: <Widget>[
-          Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: <Widget>[
-              Icon(
-                Icons.directions_bus,
-                color: Colors.grey,
-                size: 36.0,
+              Column(
+                children: <Widget>[
+                  Icon(
+                    Icons.directions_bus,
+                    color: Colors.grey,
+                    size: 36.0,
+                  ),
+                  TimetableWidget(),
+                ],
               ),
-              TimetableWidget(),
-            ],
-          ),
-          Column(
-            children: <Widget>[
-              Icon(
-                Icons.access_time,
-                size: 36.0,
-                color: Colors.grey,
+              Column(
+                children: <Widget>[
+                  Icon(
+                    Icons.access_time,
+                    size: 36.0,
+                    color: Colors.grey,
+                  ),
+                  DigitalClock(),
+                ],
               ),
-              DigitalClock(),
+              Column(
+                children: <Widget>[ForecastWidget(key: key)],
+              ),
+              /* Stack(
+            children: <Widget>[luxValueWidget,
+            Text('${widget.rainforecast.maxMillimeters()}')
             ],
-          ),
-          Column(
-            children: <Widget>[
-              ForecastWidget(key: key),
+          ),*/
             ],
-          ),
-          Stack(
-            children: <Widget>[luxValueWidget],
-          ),
-        ],
-      )
+          )
           /*floatingActionButton: FloatingActionButton(
         onPressed: () => key.currentState.refreshData(),
         tooltip: 'Refresh',
