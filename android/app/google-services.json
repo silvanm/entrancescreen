@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "987477063698",
+    "firebase_url": "https://entrancescreen.firebaseio.com",
+    "project_id": "entrancescreen",
+    "storage_bucket": "entrancescreen.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:987477063698:android:7faf5f0d6a31d48e9d00cb",
+        "android_client_info": {
+          "package_name": "com.muehlemann.entrancescreen"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "987477063698-45dutc0qlch3tk5q8soeev02u7jtqunf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAzAsF9PofCZ9metAuvG9QjlV92LrRWxWA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "987477063698-45dutc0qlch3tk5q8soeev02u7jtqunf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

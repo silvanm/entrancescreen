@@ -33,6 +33,12 @@ dependencies:
   light: ^0.1.1
   charts_flutter: ^0.8.1
   scoped_model: ^1.0.1
+  camera: ^0.5.7
+  firebase_ml_vision: ^0.9.3
+  firebase_core: ^0.4.0+9
+  firebase_analytics: ^5.0.2
+  firebase_storage: ^3.1.1
+  uuid: ^1.0.0
 
 dev_dependencies:
   flutter_test:

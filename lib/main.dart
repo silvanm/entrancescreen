@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:entrancescreen/forecast.dart';
+import 'package:entrancescreen/models/appstate.dart';
 import 'package:entrancescreen/models/rainforecast.dart';
 import 'package:entrancescreen/timetable.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,11 +14,36 @@ import 'package:light/light.dart';
 import 'package:scoped_model/scoped_model.dart';
 import 'package:screen/screen.dart';
 import 'clock.dart';
+import 'package:camera/camera.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
-void main() => runApp(MyApp());
+import 'facedetector.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Obtain a list of the available cameras on the device.
+  final cameras = await availableCameras();
+
+  // Get a specific camera from the list of available cameras.
+  final firstCamera = cameras[1];
+
+  final FirebaseStorage storage =
+  FirebaseStorage(storageBucket: 'gs://entrancescreen.appspot.com/');
+
+  runApp(MyApp(camera: firstCamera, storage: storage));
+}
 
 class MyApp extends StatelessWidget {
+  final CameraDescription camera;
+  final FirebaseStorage storage;
+
+  const MyApp({
+    Key key,
+    @required this.camera,
+    @required this.storage,
+  }) : super(key: key);
+
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
@@ -32,19 +59,22 @@ class MyApp extends StatelessWidget {
       DeviceOrientation.portraitDown,
     ]);
 
-    return ScopedModel<Rainforecast>(
-        model: _rainforecast,
-        child: MaterialApp(
-            title: 'EntranceScreen',
-            theme: ThemeData(
-              brightness: Brightness.dark,
-              canvasColor: Colors.black,
-              textTheme: newTextTheme,
-            ),
-            home: MyHomePage(
-              title: 'Mühlemann\'s Entrance Screen',
-              rainforecast: _rainforecast,
-            )));
+    return new ScopedModel<Appstate>(
+        model: new Appstate(),
+        child: ScopedModel<Rainforecast>(
+            model: _rainforecast,
+            child: MaterialApp(
+                title: 'EntranceScreen',
+                theme: ThemeData(
+                  brightness: Brightness.dark,
+                  canvasColor: Colors.black,
+                  textTheme: newTextTheme,
+                ),
+                home: MyHomePage(
+                    title: 'Mühlemann\'s Entrance Screen',
+                    rainforecast: _rainforecast,
+                    camera: camera,
+                    storage: storage))));
   }
 }
 
@@ -52,8 +82,12 @@ final key = new GlobalKey<ForecastWidgetState>();
 
 class MyHomePage extends StatefulWidget {
   final Rainforecast rainforecast;
+  final CameraDescription camera;
+  final FirebaseStorage storage;
 
-  MyHomePage({Key key, this.title, this.rainforecast}) : super(key: key);
+  MyHomePage(
+      {Key key, this.title, this.rainforecast, this.camera, this.storage})
+      : super(key: key);
   final String title;
 
   @override
@@ -68,10 +102,9 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _displayOff = false;
   Timer _timer;
   double _maxMillimeters = 0;
-
   StreamSubscription _subscription;
 
-  void startListening() {
+  void startListeningToLuxSensor() {
     _light = new Light();
     try {
       _subscription = _light.lightSensorStream.listen(onData);
@@ -88,7 +121,7 @@ class _MyHomePageState extends State<MyHomePage> {
     SystemChrome.setEnabledSystemUIOverlays([]);
     refreshData();
     if (!kIsWeb) {
-      startListening();
+      startListeningToLuxSensor();
     } else {
       _luxValue = 50;
     }
@@ -113,7 +146,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void onData(int luxValue) async {
-    print("Lux value from Light Sensor: $luxValue");
     setState(() {
       _luxValue = luxValue;
 
@@ -148,51 +180,64 @@ class _MyHomePageState extends State<MyHomePage> {
     if (_displayOff) {
       return Scaffold(
           body: Stack(
-        children: <Widget>[luxValueWidget],
-      ));
+            children: <Widget>[luxValueWidget],
+          ));
     } else {
       return Scaffold(
           backgroundColor: backgroundColor,
-          body: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: <Widget>[
-              Column(
-                children: <Widget>[
-                  Icon(
-                    Icons.directions_bus,
-                    color: Colors.grey,
-                    size: 36.0,
-                  ),
-                  TimetableWidget(),
-                ],
-              ),
-              Column(
-                children: <Widget>[
-                  Icon(
-                    Icons.access_time,
-                    size: 36.0,
-                    color: Colors.grey,
-                  ),
-                  DigitalClock(),
-                ],
-              ),
-              Column(
-                children: <Widget>[ForecastWidget(key: key)],
-              ),
-              /* Stack(
+          body: Stack(children: <Widget>[
+            Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: <Widget>[
+                Column(
+                  children: <Widget>[
+                    Icon(
+                      Icons.directions_bus,
+                      color: Colors.grey,
+                      size: 36.0,
+                    ),
+                    TimetableWidget(),
+                  ],
+                ),
+                Column(
+                  children: <Widget>[
+                    Icon(
+                      Icons.access_time,
+                      size: 36.0,
+                      color: Colors.grey,
+                    ),
+                    DigitalClock(),
+                  ],
+                ),
+                Column(
+                  children: <Widget>[ForecastWidget(key: key)],
+                ),
+                /* Stack(
             children: <Widget>[luxValueWidget,
             Text('${widget.rainforecast.maxMillimeters()}')
             ],
           ),*/
-            ],
-          )
-          /*floatingActionButton: FloatingActionButton(
-        onPressed: () => key.currentState.refreshData(),
-        tooltip: 'Refresh',
-        child: Icon(Icons.refresh),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
-       */
-          );
+                Facedetector(
+                  camera: widget.camera,
+                  storage: widget.storage,
+                )
+              ],
+            ),
+            Align(
+                alignment: Alignment(0, 1),
+                child: new Builder(
+                    builder: (BuildContext buildContext) {
+                      return GestureDetector(
+                          onTap: () {
+                            bool debug =
+                            ScopedModel.of<Appstate>(context).toggleDebug();
+                            final snackBar =
+                            SnackBar(content: Text('Debug set to $debug'));
+                            Scaffold.of(buildContext).showSnackBar(snackBar);
+                          }
+                      );
+                    }))
+          ]));
     }
   }
 }
