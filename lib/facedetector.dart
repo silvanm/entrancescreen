@@ -27,6 +27,7 @@ class _FacedetectorState extends State<Facedetector> {
   Future<void> _initializeControllerFuture;
   List<StorageUploadTask> _tasks = <StorageUploadTask>[];
   Timer _timer;
+  DateTime _lastUpload;
 
   @override
   void dispose() {
@@ -43,7 +44,7 @@ class _FacedetectorState extends State<Facedetector> {
         // Get a specific camera from the list of available cameras.
         widget.camera,
         // Define the resolution to use.
-        ResolutionPreset.medium,
+        ResolutionPreset.veryHigh,
       );
       _initializeControllerFuture = _controller.initialize();
       _timer = Timer(
@@ -51,6 +52,18 @@ class _FacedetectorState extends State<Facedetector> {
         takePicture,
       );
     }
+  }
+
+  /// Prevent too many uploads
+  bool throttlingNecessary() {
+    if (_lastUpload == null) {
+      return false;
+    }
+    if (_lastUpload.difference(DateTime.now()).inSeconds < -5) {
+      return false;
+    }
+    print('Throttling enabled since $_lastUpload');
+    return true;
   }
 
   void takePicture() async {
@@ -67,7 +80,6 @@ class _FacedetectorState extends State<Facedetector> {
         (await getTemporaryDirectory()).path,
         '${DateTime.now()}.png',
       );
-      print('Picture saved at $path');
 
       // Attempt to take a picture and log where it's been saved.
       await _controller.takePicture(path);
@@ -82,9 +94,9 @@ class _FacedetectorState extends State<Facedetector> {
 
       faceDetector.close();
 
-      String filename='${DateTime.now()}.png';
+      String filename='${DateTime.now()}.jpg';
 
-      if (faces.length > 0) {
+      if (faces.length > 0 && !throttlingNecessary()) {
         final StorageReference ref =
             widget.storage.ref().child(filename);
         final StorageUploadTask uploadTask = ref.putFile(
@@ -94,6 +106,11 @@ class _FacedetectorState extends State<Facedetector> {
             customMetadata: <String, String>{'facecount': '${faces.length}'},
           ),
         );
+        _lastUpload = DateTime.now();
+        StorageTaskSnapshot storageTaskSnapshot = await uploadTask.onComplete;
+
+        print('Uploaded picture $filename)');
+
         if (ScopedModel.of<Appstate>(context).debug) {
           final snackBar = SnackBar(content: Text('Uploaded picture $filename)'));
           Scaffold.of(context).showSnackBar(snackBar);
@@ -101,13 +118,17 @@ class _FacedetectorState extends State<Facedetector> {
         setState(() {
           _tasks.add(uploadTask);
         });
-      }
+      }// delete the file to free storage
+      imageFile.delete();
+
     } catch (e) {
       // If an error occurs, log the error to the console.
       print(e);
     }
+
+
     _timer = Timer(
-      Duration(seconds: 5),
+      Duration(seconds: 1),
       takePicture,
     );
   }

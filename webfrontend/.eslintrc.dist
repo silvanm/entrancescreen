@@ -1,0 +1,6 @@
+{
+  "parser": "vue-eslint-parser",
+  "rules": {
+    "no-console": "off"
+  }
+}
