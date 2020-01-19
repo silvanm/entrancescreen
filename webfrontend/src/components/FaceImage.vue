@@ -1,7 +1,7 @@
 <template>
-    <div class="image" v-observe-visibility="visibilityChanged">
+    <div :class="classObj" v-observe-visibility="visibilityChanged">
         <div class="full-view" v-if="showFull">
-            <div id="selection" :style="{ left:
+            <div id="selection" :class="selectionClass" :style="{ left:
             this.selection.topleft[0] + 'px',
             top:
             this.selection.topleft[1] + 'px',
@@ -10,35 +10,39 @@
             height:
             (this.selection.bottomright[1] - this.selection.topleft[1]) + 'px',
             }"></div>
-            <div v-on:click="showFull=false">X</div>
-            <img :src="obj.url"
-                 draggable="false"
-            >
-            <div
-                    id="sensor"
-                    v-on:mousedown="dragStart($event)"
-                    v-on:mousemove="drag($event)"
-                    v-on:mouseup="dragEnd($event)"
-                    v-on:mouseout="dragEnd($event)"></div>
+            <div v-on:click="showFull=false">Close</div>
+            <img ref="fullimage" :src="obj.url" v-on:load="updateImageScale();analyze()"
+                 v-on:click="showFull=false">
+            <person-selector v-if="selectingPerson"
+                             :x="this.selection.topleft[0]"
+                             :y="this.selection.bottomright[1]"
+                             v-on:personSelect="personSelected($event)"
+            ></person-selector>
+            <button @click="identify" v-if="detectedFaceId">Identify</button>
             <pre>{{statusMessage}}</pre>
         </div>
-        <img class="thumbnail" :src="obj.url" v-on:click="showFull=true;analyze()"
+        <img class="thumbnail" :src="obj.url" v-on:click="showFull=true;"
 
         >
         <div class="created-at">{{displayDate}} - {{obj.facecount}}</div>
-
     </div>
 </template>
 
 <script>
   import moment from 'moment';
   import Vue from 'vue';
-  import azureRequest from '@/azureRequest';
+  import { azureRequest, faceDetect } from '@/azureRequest';
+  import PersonSelector from './PersonSelector';
+  import config from '../config';
+  import { db } from '../firebase/firestore';
+  import { PersonList } from '../models';
 
   export default {
     name: 'Snapshots',
+    components: {PersonSelector},
     props: {
-      obj: Object
+      obj: Object,
+      personList: PersonList,
     },
     data() {
       return {
@@ -48,7 +52,11 @@
         selection: {
           topleft: [0, 0],
           bottomright: [0, 0],
-        }
+        },
+        imageScale: null,
+        selectingPerson: false,
+        selectionClass: 'initial',
+        detectedFaceId: null,
       };
     },
     computed: {
@@ -58,7 +66,24 @@
         } else {
           return moment(this.obj.createdAt).format('DD.MM.YYYY HH:mm:ss');
         }
-      }
+      },
+      status() {
+        try {
+          return this.obj.firestoreObj.status;
+        } catch (e) {
+          return '';
+        }
+      },
+      classObj() {
+        const classObj = {
+          'image': true,
+        };
+        classObj[this.status] = true;
+        return classObj;
+      },
+    },
+    updated() {
+      this.updateImageScale();
     },
     methods: {
       load() {
@@ -67,7 +92,9 @@
         });
         this.obj.firestoreRef.getMetadata().then((res) => {
           Vue.set(this.obj, 'createdAt', new Date(res.timeCreated));
-          Vue.set(this.obj, 'facecount', res.customMetadata.facecount);
+          if ('facecount' in res.customMetadata) {
+            Vue.set(this.obj, 'facecount', res.customMetadata.facecount);
+          }
         });
       },
       visibilityChanged(isVisible) {
@@ -75,44 +102,58 @@
           this.load();
         }
       },
-      analyze() {
-
-        // Request parameters.
-        var params = {
-          'returnFaceId': 'true',
-          'returnFaceLandmarks': 'false',
-          'recognitionModel': 'recognition_02',
-          'returnRecognitionModel': true,
-          'returnFaceAttributes':
-            'age,gender,headPose,smile,facialHair,glasses,emotion,' +
-            'hair,makeup,occlusion,accessories,blur,exposure,noise'
-        };
-
-        azureRequest('detect', params, {url: this.obj.url})
-          .then((data) => {
-            // Show formatted JSON on webpage.
-            this.statusMessage = data.data;
-          });
-      },
-      /* eslint no-console: 0 */
-      dragStart(e) {
-        this.dragging = true;
-        this.selection.topleft = this.selection.bottomright = this.getRelativeCoords(e);
-        return false;
-      },
-      /* eslint no-console: 0 */
-      drag(e) {
-        if (this.dragging) {
-          this.selection.bottomright = this.getRelativeCoords(e);
-          return false;
+      updateImageScale() {
+        if (this.$refs.fullimage) {
+          this.imageScale = this.$refs.fullimage.naturalWidth / this.$refs.fullimage.clientWidth;
+        } else {
+          this.imageScale = null;
         }
       },
-      /* eslint no-console: 0 */
-      dragEnd(e) {
-        this.dragging = false;
-        this.getRelativeCoords(e);
-        return false;
+      analyze() {
+        faceDetect(this.obj, db,
+          (data) => {
+            // Show formatted JSON on webpage.
+            this.statusMessage = data.data;
+            if (data.data.length === 1) {
+              let r = data.data[0].faceRectangle;
+              this.detectedFaceId = data.data[0].faceId;
+              this.selection.topleft = [r.left / this.imageScale, r.top / this.imageScale];
+              this.selection.bottomright = [
+                (r.left + r.width) / this.imageScale,
+                (r.top + r.height) / this.imageScale];
+              this.selectingPerson = true;
+              // Identify face
+              this.identify();
+            }
+          }
+        );
       },
+      async personSelected(personId) {
+        const response = await azureRequest(`persongroups/${config.persongroupId}/persons/${personId}/persistedFaces`,
+          {detectionModel: 'detection_02'}, {url: this.obj.url});
+        this.statusMessage = response.data.statusMessage;
+        this.selectingPerson = false;
+        this.selectionClass = 'sent';
+
+        // Update the state in firebase
+        const rec = {...this.obj.firestoreObj};
+        rec.status = 'sent';
+
+        db.collection('faceimages')
+          .doc(this.obj.firestoreObj.id)
+          .set(rec)
+          .then(() => {
+            this.obj.firestoreObj.status = 'sent';
+            console.log('faceimages-updated!');
+          });
+
+        /* eslint no-console: 0 */
+      },
+      /**
+       * Get the event's coordinate relative to the parent image
+       * @param e
+       * @returns {number[]}
+       */
       getRelativeCoords(e) {
         const position = {
           x: e.pageX,
@@ -136,16 +177,35 @@
           position.x - offset.left,
           position.y - offset.top
         ];
+      },
+      async identify() {
+        const response = await azureRequest('identify',
+          [], {
+            'faceIds': [this.detectedFaceId,],
+            'personGroupId': config.persongroupId
+          });
+        let out = '';
+        response.data[0].candidates.forEach((o) => {
+            out += this.personList.getById(o.personId).name + ': ' + o.confidence + "\n";
+        });
+        this.statusMessage = out;
       }
     }
   };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
     .image {
         padding: 5px;
         min-height: 100px;
 
+        &.detected {
+            border: 2px solid yellow;
+        }
+
+        &.sent {
+            border: 2px solid green;
+        }
     }
 
     img.thumbnail {
@@ -156,7 +216,7 @@
     }
 
     .full-view img {
-        max-height: 800px;
+        max-height: 500px;
     }
 
     .full-view {
@@ -180,9 +240,13 @@
     #selection {
         position: absolute;
         z-index: 7;
-        border: 1px solid red;
+        border: 2px solid red;
         background: transparent;
         user-select: none;
+
+        &.sent {
+            border-color: green;
+        }
     }
 
     #sensor {

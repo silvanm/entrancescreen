@@ -1,10 +1,8 @@
 import Vue from 'vue'
-//import App from './App.vue'
 import { firestorePlugin } from 'vuefire';
 import VueObserveVisibility from 'vue-observe-visibility'
 import router from './router';
 import App from './App';
-
 
 Vue.config.productionTip = false;
 

@@ -1,7 +1,7 @@
 <template>
     <div>
         <div class="snapshot" v-bind:key="img.filename" v-for="img in images">
-            <face-image :obj="img"/>
+            <face-image :person-list="personList" :obj="img"/>
         </div>
 
     </div>
@@ -10,33 +10,50 @@
 <script>
   import { storage } from '../firebase/storage';
   import FaceImage from '../components/FaceImage';
+  import { db } from '../firebase/firestore';
+  import { PersonList } from '../models';
 
   export default {
     name: 'ImageList',
     components: {FaceImage},
     data() {
       return {
-        images: []
+        images: [],
+        personList: null
       };
     },
+
     mounted() {
-      // Create a storage reference from our storage service
+      this.personList = new PersonList();
+      this.personList.load();
+
       var storageRef = storage.ref();
 
-      // Find all the prefixes and items.
       storageRef.listAll().then((res) => {
-        res.items.forEach((itemRef) => {
-          let currentImage = {
-            loading: true,
-            filename: itemRef.fullPath,
-            createdAt: null,
-            url: null,
-            facecount: null,
-            firestoreRef: itemRef
-          };
-          this.images.push(currentImage);
-        });
-        this.images.reverse();
+
+        db.collection('faceimages')
+          .get()
+          .then(querySnapshot => {
+            const faceimages = querySnapshot.docs.map(doc => doc.data());
+            let map = [];
+            faceimages.forEach((o) => {
+              map[o.filename] = o;
+            });
+
+            res.items.forEach((itemRef) => {
+              let currentImage = {
+                loading: true,
+                filename: itemRef.fullPath,
+                createdAt: null,
+                url: null,
+                facecount: null,
+                firestoreRef: itemRef,
+                firestoreObj: map[itemRef.fullPath]
+              };
+              this.images.push(currentImage);
+            });
+            this.images.reverse();
+          });
       }).catch(function (error) {
         throw error;
       });

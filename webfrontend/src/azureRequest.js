@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+
 function buildUrl(url, parameters) {
   var qs = '';
   for (var key in parameters) {
@@ -20,7 +21,7 @@ function buildUrl(url, parameters) {
  * @param data POST body
  * @returns {AxiosPromise}
  */
-function azureRequest(activity, params, data, method='post') {
+function azureRequest(activity, params, data, method = 'post') {
   let subscriptionKey = 'c176a67cfe7b4617b144a0bf5414fe01';
 
   let uriBase =
@@ -35,7 +36,43 @@ function azureRequest(activity, params, data, method='post') {
       'Ocp-Apim-Subscription-Key': subscriptionKey
     },
     data: data
-  })
+  });
 }
 
-export default azureRequest;
+function faceDetect(obj, db, oncomplete) {
+// Request parameters.
+  var params = {
+    'returnFaceId': 'true',
+    'returnFaceLandmarks': 'false',
+    'recognitionModel': 'recognition_02',
+    'returnRecognitionModel': true,
+    'returnFaceAttributes':
+      'age,gender,headPose,smile,facialHair,glasses,emotion,' +
+      'hair,makeup,occlusion,accessories,blur,exposure,noise'
+  };
+
+  azureRequest('detect', params, {url: obj.url})
+    .then((data) => {
+
+      let firestoreObj = {
+        filename: obj.filename,
+        createdAt: obj.createdAt,
+        sentAt: new Date(),
+        detectData: data.data,
+        status: 'detected'
+      };
+
+      // create new record in firebase
+      db.collection('faceimages')
+        .add(firestoreObj)
+        .then(async (item) => {
+          obj.firestoreObj = firestoreObj;
+          obj.firestoreObj.id = item.id;
+        }); // 7Ew4ny2WFUzv2mjPNoOa
+
+      oncomplete(data);
+    });
+
+}
+
+export { azureRequest, faceDetect };
