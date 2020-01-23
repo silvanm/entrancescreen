@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' show join;
 import 'package:scoped_model/scoped_model.dart';
@@ -28,6 +29,7 @@ class _FacedetectorState extends State<Facedetector> {
   List<StorageUploadTask> _tasks = <StorageUploadTask>[];
   Timer _timer;
   DateTime _lastUpload;
+  bool _isDetecting = false;
 
   @override
   void dispose() {
@@ -37,7 +39,7 @@ class _FacedetectorState extends State<Facedetector> {
   }
 
   @override
-  void initState() {
+  void initState() async {
     super.initState();
     if (!kIsWeb) {
       _controller = CameraController(
@@ -46,11 +48,20 @@ class _FacedetectorState extends State<Facedetector> {
         // Define the resolution to use.
         ResolutionPreset.veryHigh,
       );
-      _initializeControllerFuture = _controller.initialize();
-      _timer = Timer(
-        Duration(seconds: 5),
-        takePicture,
-      );
+      await _controller.initialize();
+      _controller.startImageStream((CameraImage image) {
+        if (_isDetecting) return;
+        _isDetecting = true;
+        try {
+          // await doSomethingWith(image)
+          print("detecting");
+        } catch (e) {
+          //await handleExepction(e)
+          print("exception");
+        } finally {
+          _isDetecting = false;
+        }
+      });
     }
   }
 
@@ -66,25 +77,13 @@ class _FacedetectorState extends State<Facedetector> {
     return true;
   }
 
+  /*
   void takePicture() async {
     try {
-      _timer?.cancel();
       // Ensure that the camera is initialized.
       await _initializeControllerFuture;
 
-      // Construct the path where the image should be saved using the
-      // pattern package.
-      final path = join(
-        // Store the picture in the temp directory.
-        // Find the temp directory using the `path_provider` plugin.
-        (await getTemporaryDirectory()).path,
-        '${DateTime.now()}.png',
-      );
 
-      // Attempt to take a picture and log where it's been saved.
-      await _controller.takePicture(path);
-
-      final File imageFile = File(path);
       final FirebaseVisionImage visionImage =
           FirebaseVisionImage.fromFile(imageFile);
       final FaceDetector faceDetector = FirebaseVision.instance.faceDetector();
@@ -94,7 +93,8 @@ class _FacedetectorState extends State<Facedetector> {
 
       faceDetector.close();
 
-      String filename='${DateTime.now()}.jpg';
+      DateFormat fmt = new DateFormat('y-MM-dd');
+      String filename='${fmt.format(DateTime.now())}/${DateTime.now()}.jpg';
 
       if (faces.length > 0 && !throttlingNecessary()) {
         final StorageReference ref =
@@ -126,12 +126,8 @@ class _FacedetectorState extends State<Facedetector> {
       print(e);
     }
 
-
-    _timer = Timer(
-      Duration(seconds: 1),
-      takePicture,
-    );
   }
+   */
 
   @override
   Widget build(BuildContext context) {
@@ -153,10 +149,6 @@ class _FacedetectorState extends State<Facedetector> {
               return Center(child: CircularProgressIndicator());
             }
           },
-        ),
-        FlatButton(
-          child: Icon(Icons.camera),
-          onPressed: () => takePicture(),
         ),
       ]);
     } else {
