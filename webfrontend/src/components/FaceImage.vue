@@ -24,7 +24,9 @@
         <img class="thumbnail" :src="obj.url" v-on:click="showFull=true;"
 
         >
-        <div class="created-at">{{displayDate}} - {{obj.facecount}}</div>
+        <div class="created-at">{{displayDate}}
+            {{identifiedPerson}}
+        </div>
     </div>
 </template>
 
@@ -64,7 +66,7 @@
         if (this.obj.createdAt === null) {
           return '';
         } else {
-          return moment(this.obj.createdAt).format('DD.MM.YYYY HH:mm:ss');
+          return moment(this.obj.createdAt).format('HH:mm:ss');
         }
       },
       status() {
@@ -81,16 +83,23 @@
         classObj[this.status] = true;
         return classObj;
       },
+      identifiedPerson() {
+        if ('faceIdData' in this.obj.firestoreObj) {
+          return this.personList.getById(this.obj.firestoreObj.faceIdData[0].candidates[0].personId).name;
+        } else {
+          return '';
+        }
+      }
     },
     updated() {
       this.updateImageScale();
     },
     methods: {
       load() {
-        this.obj.firestoreRef.getDownloadURL().then((res) => {
+        this.obj.storageRef.getDownloadURL().then((res) => {
           this.obj.url = res;
         });
-        this.obj.firestoreRef.getMetadata().then((res) => {
+        this.obj.storageRef.getMetadata().then((res) => {
           Vue.set(this.obj, 'createdAt', new Date(res.timeCreated));
           if ('facecount' in res.customMetadata) {
             Vue.set(this.obj, 'facecount', res.customMetadata.facecount);
@@ -186,7 +195,7 @@
           });
         let out = '';
         response.data[0].candidates.forEach((o) => {
-            out += this.personList.getById(o.personId).name + ': ' + o.confidence + "\n";
+          out += this.personList.getById(o.personId).name + ': ' + o.confidence + '\n';
         });
         this.statusMessage = out;
       }
@@ -203,7 +212,7 @@
             border: 2px solid yellow;
         }
 
-        &.sent {
+        &.identified {
             border: 2px solid green;
         }
     }

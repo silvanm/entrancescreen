@@ -16,3 +16,16 @@ Highly customized screen for the entrance of our house showing:
 Additional feature:
 - if the light sensor reports darkness, the display turns off. Reason: The screen can be seen
   through the window. We don't want to attract curious people during the night
+
+## Face reconization feature
+
+It also able to recognize faces using the [Azure Cognitive Face Service](https://azure.microsoft.com/en-us/services/cognitive-services/face/).
+
+- The app uses the Google ML kit to detect faces on the device
+- The image is uploaded to Google Cloud Storage
+- A cloud function is triggered which sends the image to the Face detection service
+- The result of the detection is stored in Firebase Database
+- A VueJS frontend allows to 
+  - see the detected pictures
+  - add new persons
+  - add new faces to the persons

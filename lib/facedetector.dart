@@ -29,7 +29,6 @@ class _FacedetectorState extends State<Facedetector> {
   List<StorageUploadTask> _tasks = <StorageUploadTask>[];
   Timer _timer;
   DateTime _lastUpload;
-  bool _isDetecting = false;
 
   @override
   void dispose() {
@@ -39,66 +38,61 @@ class _FacedetectorState extends State<Facedetector> {
   }
 
   @override
-  void initState() async {
+  void initState() {
     super.initState();
     if (!kIsWeb) {
       _controller = CameraController(
         // Get a specific camera from the list of available cameras.
         widget.camera,
         // Define the resolution to use.
-        ResolutionPreset.veryHigh,
+        ResolutionPreset.high,
       );
-      await _controller.initialize();
-      _controller.startImageStream((CameraImage image) {
-        if (_isDetecting) return;
-        _isDetecting = true;
-        try {
-          // await doSomethingWith(image)
-          print("detecting");
-        } catch (e) {
-          //await handleExepction(e)
-          print("exception");
-        } finally {
-          _isDetecting = false;
-        }
-      });
+      _initializeControllerFuture = _controller.initialize();
+      _timer = Timer(
+        Duration(seconds: 5),
+        takePicture,
+      );
     }
   }
 
-  /// Prevent too many uploads
-  bool throttlingNecessary() {
-    if (_lastUpload == null) {
-      return false;
-    }
-    if (_lastUpload.difference(DateTime.now()).inSeconds < -5) {
-      return false;
-    }
-    print('Throttling enabled since $_lastUpload');
-    return true;
-  }
-
-  /*
   void takePicture() async {
     try {
+      _timer?.cancel();
       // Ensure that the camera is initialized.
       await _initializeControllerFuture;
 
+      // Construct the path where the image should be saved using the
+      // pattern package.
+      final path = join(
+        // Store the picture in the temp directory.
+        // Find the temp directory using the `path_provider` plugin.
+        (await getTemporaryDirectory()).path,
+        '${DateTime.now()}.png',
+      );
 
+      // Attempt to take a picture and log where it's been saved.
+      await _controller.takePicture(path);
+
+      final File imageFile = File(path);
       final FirebaseVisionImage visionImage =
-          FirebaseVisionImage.fromFile(imageFile);
+      FirebaseVisionImage.fromFile(imageFile);
       final FaceDetector faceDetector = FirebaseVision.instance.faceDetector();
+      print("Start Detection");
+      final DateTime dStart = new DateTime.now();
       final List<Face> faces = await faceDetector.processImage(visionImage);
+      final DateTime dEnd = new DateTime.now();
 
+      Duration difference = dEnd.difference(dStart);
       print('${faces.length} faces detected');
-
+      print('Duration ${difference.inSeconds} seconds');
       faceDetector.close();
 
-      DateFormat fmt = new DateFormat('y-MM-dd');
-      String filename='${fmt.format(DateTime.now())}/${DateTime.now()}.jpg';
+      DateFormat fmt = new DateFormat('y/MM/dd');
+      String filename = '${fmt.format(DateTime.now())}/${DateTime.now()}.jpg';
 
-      if (faces.length > 0 && !throttlingNecessary()) {
+      if (faces.length > 0) {
         final StorageReference ref =
-            widget.storage.ref().child(filename);
+        widget.storage.ref().child(filename);
         final StorageUploadTask uploadTask = ref.putFile(
           imageFile,
           StorageMetadata(
@@ -107,31 +101,48 @@ class _FacedetectorState extends State<Facedetector> {
           ),
         );
         _lastUpload = DateTime.now();
-        StorageTaskSnapshot storageTaskSnapshot = await uploadTask.onComplete;
+        //StorageTaskSnapshot storageTaskSnapshot = await uploadTask.onComplete;
+        Future<StorageTaskSnapshot> f = uploadTask.onComplete;
 
-        print('Uploaded picture $filename)');
+        f.then((snapshot) {
+          print('Uploaded picture $filename)');
 
-        if (ScopedModel.of<Appstate>(context).debug) {
-          final snackBar = SnackBar(content: Text('Uploaded picture $filename)'));
-          Scaffold.of(context).showSnackBar(snackBar);
-        }
-        setState(() {
-          _tasks.add(uploadTask);
+          if (ScopedModel
+              .of<Appstate>(context)
+              .debug) {
+            final snackBar = SnackBar(
+                content: Text('Uploaded picture $filename)'));
+            Scaffold.of(context).showSnackBar(snackBar);
+          }
+          setState(() {
+            _tasks.add(uploadTask);
+          });
+          imageFile.delete();
+        }).catchError((_) {
+          print(_);
+          imageFile.delete();
         });
-      }// delete the file to free storage
-      imageFile.delete();
-
+      } else {
+        imageFile.delete();
+      }
     } catch (e) {
       // If an error occurs, log the error to the console.
       print(e);
     }
 
+
+    _timer = Timer(
+      Duration(seconds: 1),
+      takePicture
+      ,
+    );
   }
-   */
 
   @override
   Widget build(BuildContext context) {
-    bool debug = ScopedModel.of<Appstate>(context).debug;
+    bool debug = ScopedModel
+        .of<Appstate>(context)
+        .debug;
     if (debug) {
       return Row(children: <Widget>[
         FutureBuilder<void>(
@@ -149,6 +160,10 @@ class _FacedetectorState extends State<Facedetector> {
               return Center(child: CircularProgressIndicator());
             }
           },
+        ),
+        FlatButton(
+          child: Icon(Icons.camera),
+          onPressed: () => takePicture(),
         ),
       ]);
     } else {

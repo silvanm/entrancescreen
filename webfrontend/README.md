@@ -21,6 +21,3 @@ yarn build --mode development
 firebase deploy
 ```
 
-### Create face group
-
-

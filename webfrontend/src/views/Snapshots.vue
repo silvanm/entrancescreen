@@ -1,9 +1,9 @@
 <template>
     <div>
-        <div class="snapshot" v-bind:key="img.filename" v-for="img in images">
+        <datepicker :inline="true" v-model="date" v-on:input="updateImages"></datepicker>
+        <div class="snapshot" v-bind:key="img.id" v-for="img in images">
             <face-image :person-list="personList" :obj="img"/>
         </div>
-
     </div>
 </template>
 
@@ -12,59 +12,61 @@
   import FaceImage from '../components/FaceImage';
   import { db } from '../firebase/firestore';
   import { PersonList } from '../models';
+  import Datepicker from 'vuejs-datepicker';
 
   export default {
     name: 'ImageList',
-    components: {FaceImage},
+    components: {FaceImage, Datepicker},
     data() {
       return {
+        date: new Date(new Date().setHours(0, 0, 0, 0)),
         images: [],
         personList: null
       };
     },
-
     mounted() {
       this.personList = new PersonList();
       this.personList.load();
-
-      var storageRef = storage.ref();
-
-      storageRef.listAll().then((res) => {
+      this.updateImages();
+    },
+    methods: {
+      updateImages() {
+        this.images = [];
+        let thisDay = this.date;
+        let nextDay = new Date(thisDay.getFullYear(), thisDay.getMonth(), thisDay.getDate() + 1);
 
         db.collection('faceimages')
+          .where('createdAt', '>', thisDay)
+          .where('createdAt', '<', nextDay)
+          .orderBy('createdAt', 'desc')
           .get()
           .then(querySnapshot => {
-            const faceimages = querySnapshot.docs.map(doc => doc.data());
-            let map = [];
-            faceimages.forEach((o) => {
-              map[o.filename] = o;
-            });
+            /* eslint no-console: 0 */
+            console.log(`Read ${querySnapshot.size} items between ${thisDay} and ${nextDay}`);
 
-            res.items.forEach((itemRef) => {
+            querySnapshot.forEach((o) => {
+              let d = o.data();
               let currentImage = {
                 loading: true,
-                filename: itemRef.fullPath,
-                createdAt: null,
+                filename: d.filename,
+                createdAt: d.createdAt.toDate(),
                 url: null,
                 facecount: null,
-                firestoreRef: itemRef,
-                firestoreObj: map[itemRef.fullPath]
+                storageRef: storage.refFromURL(`gs://${process.env.VUE_APP_FIREBASE_STORAGE_BUCKET}/${d.filename}`),
+                firestoreObj: d,
+                status: d.status
               };
               this.images.push(currentImage);
             });
-            this.images.reverse();
           });
-      }).catch(function (error) {
-        throw error;
-      });
+
+      },
     }
   };
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
     .snapshot {
         display: inline-block;
     }
-
 </style>

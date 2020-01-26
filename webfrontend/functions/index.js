@@ -55,21 +55,42 @@ const faceDetect = function (binaryData, filename, createdAt, db, oncomplete) {
   azureRequest('detect', params, binaryData, 'post', 'application/octet-stream')
     .then((data) => {
 
-      /*
+      console.log('Face detected', data.data);
+
       let firestoreObj = {
         filename: filename,
         createdAt: createdAt,
         sentAt: new Date(),
         detectData: data.data,
-        status: 'detected'
+        status: null
       };
 
-      // create new record in firebase
-      db.collection('faceimages')
-        .add(firestoreObj)
-        .then(() => console.log('object stored in firebase')); // 7Ew4ny2WFUzv2mjPNoOa
-      */
-      console.log("Face detected", data.data)
+      // if there is one face then try to identify
+      if (data.data.length === 1) {
+        azureRequest('identify',
+          [], {
+            'faceIds': [data.data[0].faceId],
+            'personGroupId': 'muehlemann'
+          }).then((identifyData) => {
+          let out = '';
+          identifyData.data[0].candidates.forEach((o) => {
+            out += `${o.personId}: ${o.confidence}. `;
+          });
+          console.log('Face identified: ' + out);
+          firestoreObj.status = 'identified';
+          firestoreObj.faceIdData = identifyData.data;
+          db.collection('faceimages')
+            .add(firestoreObj)
+            .then((docref) => console.log('object stored in firebase: ' + docref.id));
+        });
+      } else {
+
+        firestoreObj.status = 'detected';
+
+        db.collection('faceimages')
+          .add(firestoreObj)
+          .then((docref) => console.log('object stored in firebase: ' + docref.id)); // 7Ew4ny2WFUzv2mjPNoOa
+      }
       oncomplete(data);
     }).catch((reason) => { console.log(reason);});
 
@@ -98,8 +119,13 @@ exports.onnewimage = functions.storage.object().onFinalize(async (object) => {
   bucket.file(filePath).download((err, contents) => {
     console.log('Bytes downloaded: ', contents.length);
 
-    faceDetect(contents, path.basename(filePath), object.timeCreated, firestore, function (data) {
-      console.log(`facedetect via Azure complete. Found ${data.data.length} faces`);
-    });
+    // Send it for detecting faces
+    faceDetect(contents,
+      filePath,
+      new Date(object.timeCreated),
+      firestore,
+      function (data) {
+        console.log(`facedetect via Azure complete. Found ${data.data.length} faces`);
+      });
   });
 });

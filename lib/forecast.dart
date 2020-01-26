@@ -142,6 +142,7 @@ class ForecastWidgetState extends State<ForecastWidget> {
             child: Text(
               '${forecast.weatherDescription.toUpperCase()}',
               style: Theme.of(context).textTheme.title,
+              textAlign: TextAlign.center,
             ),
           ),
           Container(
