@@ -29,6 +29,8 @@ class _FacedetectorState extends State<Facedetector> {
   List<StorageUploadTask> _tasks = <StorageUploadTask>[];
   Timer _timer;
   DateTime _lastUpload;
+  DateTime _lastFaceDetected;
+  static const faceDetectionLifetime = 30;
 
   @override
   void dispose() {
@@ -42,10 +44,8 @@ class _FacedetectorState extends State<Facedetector> {
     super.initState();
     if (!kIsWeb) {
       _controller = CameraController(
-        // Get a specific camera from the list of available cameras.
         widget.camera,
-        // Define the resolution to use.
-        ResolutionPreset.high,
+        ResolutionPreset.veryHigh,
       );
       _initializeControllerFuture = _controller.initialize();
       _timer = Timer(
@@ -61,11 +61,7 @@ class _FacedetectorState extends State<Facedetector> {
       // Ensure that the camera is initialized.
       await _initializeControllerFuture;
 
-      // Construct the path where the image should be saved using the
-      // pattern package.
       final path = join(
-        // Store the picture in the temp directory.
-        // Find the temp directory using the `path_provider` plugin.
         (await getTemporaryDirectory()).path,
         '${DateTime.now()}.png',
       );
@@ -74,54 +70,79 @@ class _FacedetectorState extends State<Facedetector> {
       await _controller.takePicture(path);
 
       final File imageFile = File(path);
-      final FirebaseVisionImage visionImage =
-      FirebaseVisionImage.fromFile(imageFile);
-      final FaceDetector faceDetector = FirebaseVision.instance.faceDetector();
-      print("Start Detection");
-      final DateTime dStart = new DateTime.now();
-      final List<Face> faces = await faceDetector.processImage(visionImage);
-      final DateTime dEnd = new DateTime.now();
 
-      Duration difference = dEnd.difference(dStart);
-      print('${faces.length} faces detected');
-      print('Duration ${difference.inSeconds} seconds');
-      faceDetector.close();
+      bool uploadRequired = false;
+      String reasonForUpload = '';
+
+      // an arbirtrary high value
+      int lastFaceDetectionSinceSeconds = 1000;
+      if (_lastFaceDetected != null) {
+        lastFaceDetectionSinceSeconds =
+            _lastFaceDetected.difference(new DateTime.now()).inSeconds.abs();
+      }
+
+      // if the last face detection has happened more than $faceDetectionLifetime
+      // seconds ago, then invalidate.
+      if (_lastFaceDetected != null &&
+          lastFaceDetectionSinceSeconds > faceDetectionLifetime) {
+        _lastFaceDetected = null;
+        print("Clearing last face-detection.");
+      }
+
+      if (lastFaceDetectionSinceSeconds < faceDetectionLifetime) {
+        uploadRequired = true;
+        reasonForUpload = 'past face-detection';
+        print(
+            "Using last face-detection: ${lastFaceDetectionSinceSeconds} seconds ago");
+      } else if (_lastFaceDetected == null) {
+        final FirebaseVisionImage visionImage =
+            FirebaseVisionImage.fromFile(imageFile);
+        final FaceDetector faceDetector =
+            FirebaseVision.instance.faceDetector();
+        print("Start Detection");
+        final DateTime dStart = new DateTime.now();
+        final List<Face> faces = await faceDetector.processImage(visionImage);
+        final DateTime dEnd = new DateTime.now();
+
+        Duration difference = dEnd.difference(dStart);
+
+        print('${faces.length} faces detected');
+        print('Duration ${difference.inSeconds} seconds');
+        faceDetector.close();
+        if (faces.length > 0) {
+          _lastFaceDetected = dEnd;
+          uploadRequired = true;
+        } else {
+          uploadRequired = false;
+        }
+        reasonForUpload = 'current face-detection';
+      }
 
       DateFormat fmt = new DateFormat('y/MM/dd');
       String filename = '${fmt.format(DateTime.now())}/${DateTime.now()}.jpg';
 
-      if (faces.length > 0) {
-        final StorageReference ref =
-        widget.storage.ref().child(filename);
+      if (uploadRequired) {
+        final StorageReference ref = widget.storage.ref().child(filename);
         final StorageUploadTask uploadTask = ref.putFile(
           imageFile,
           StorageMetadata(
             contentLanguage: 'en',
-            customMetadata: <String, String>{'facecount': '${faces.length}'},
+            customMetadata: <String, String>{'reason': reasonForUpload},
           ),
         );
         _lastUpload = DateTime.now();
-        //StorageTaskSnapshot storageTaskSnapshot = await uploadTask.onComplete;
-        Future<StorageTaskSnapshot> f = uploadTask.onComplete;
+        StorageTaskSnapshot storageTaskSnapshot = await uploadTask.onComplete;
+        print('Uploaded picture $filename)');
 
-        f.then((snapshot) {
-          print('Uploaded picture $filename)');
-
-          if (ScopedModel
-              .of<Appstate>(context)
-              .debug) {
-            final snackBar = SnackBar(
-                content: Text('Uploaded picture $filename)'));
-            Scaffold.of(context).showSnackBar(snackBar);
-          }
-          setState(() {
-            _tasks.add(uploadTask);
-          });
-          imageFile.delete();
-        }).catchError((_) {
-          print(_);
-          imageFile.delete();
+        if (ScopedModel.of<Appstate>(context).debug) {
+          final snackBar =
+              SnackBar(content: Text('Uploaded picture $filename)'));
+          Scaffold.of(context).showSnackBar(snackBar);
+        }
+        setState(() {
+          _tasks.add(uploadTask);
         });
+        imageFile.delete();
       } else {
         imageFile.delete();
       }
@@ -130,19 +151,15 @@ class _FacedetectorState extends State<Facedetector> {
       print(e);
     }
 
-
     _timer = Timer(
       Duration(seconds: 1),
-      takePicture
-      ,
+      takePicture,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    bool debug = ScopedModel
-        .of<Appstate>(context)
-        .debug;
+    bool debug = ScopedModel.of<Appstate>(context).debug;
     if (debug) {
       return Row(children: <Widget>[
         FutureBuilder<void>(
