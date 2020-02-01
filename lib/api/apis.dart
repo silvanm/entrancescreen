@@ -39,7 +39,7 @@ class KachelmannApi {
 class NetatmoApi {
   Future<dynamic> getMeasurements() async {
     Network network =
-        Network('http://muehlemann.com/kitchendisplay/netatmo.php');
+        Network('https://xn--mhlemann-65a.ch/kitchendisplay/netatmo.php');
     var temperature = await network.getData();
     return temperature;
   }
@@ -48,7 +48,7 @@ class NetatmoApi {
 class ForecastApi {
   Future<dynamic> getForecast() async {
     Network network = Network(
-        'http://muehlemann.com/kitchendisplay/forecast.php?city=zuerich');
+        'https://xn--mhlemann-65a.ch/kitchendisplay/forecast.php?city=zuerich');
     var forecast = await network.getData();
     return forecast;
   }

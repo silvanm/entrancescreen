@@ -1,10 +1,14 @@
-# Entrance-Screen
+# Entrance-Screen - A info-screen with face recognition
 
 My first Flutter project.
 
-![screenshot](docs/screenshot.png)
+![wardrobe](docs/wardrobe-picture.jpg)
 
-Highly customized screen for the entrance of our house showing:
+[Web-version of the app](https://https://entrancescreen.firebaseapp.com/flutter)
+
+## Info-screen
+
+Highly customized screen for the entrance of our house:
 
 - Know when to hurry up: the next departures of the bus next to our house
 - Know if you'll be late for the meeting: the current time and date
@@ -29,3 +33,10 @@ It also able to recognize faces using the [Azure Cognitive Face Service](https:/
   - see the detected pictures
   - add new persons
   - add new faces to the persons
+  
+ ![frontend](docs/frontend-screenshot.png)
+ 
+ A mail is sent as soon as someone is being detected:
+ 
+ ![mail](docs/email.png)
+ 

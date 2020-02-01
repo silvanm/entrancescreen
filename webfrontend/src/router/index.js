@@ -3,6 +3,7 @@ import VueRouter from 'vue-router';
 import Snapshots from '../views/Snapshots';
 import Persons from '../views/Persons';
 import Login from '../views/Login';
+import Flutter from '../views/Flutter';
 import firebase from 'firebase';
 
 Vue.use(VueRouter);
@@ -37,7 +38,11 @@ const routes = [
     name: 'login',
     component: Login
   },
-
+  {
+    path: '/flutter',
+    name: 'flutter',
+    component: Flutter,
+  },
 ];
 
 const router = new VueRouter({
@@ -51,7 +56,6 @@ router.beforeEach((to, from, next) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
 
   if (requiresAuth && !currentUser) next('login');
-  else if (!requiresAuth && currentUser) next('home');
   else next();
 });
 

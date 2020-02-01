@@ -240,7 +240,7 @@
 
     .full-view {
         border: 1px solid black;
-        background-color: white;
+        background-color: black;
         position: absolute;
         z-index: 5;
     }

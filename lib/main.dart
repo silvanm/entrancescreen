@@ -22,15 +22,19 @@ import 'facedetector.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Obtain a list of the available cameras on the device.
-  final cameras = await availableCameras();
 
-  // Get a specific camera from the list of available cameras.
-  final firstCamera = cameras[1];
+  CameraDescription firstCamera = null;
+  FirebaseStorage storage = null;
 
-  final FirebaseStorage storage =
-  FirebaseStorage(storageBucket: 'gs://entrancescreen.appspot.com/');
+  if (!kIsWeb) {
+    storage =
+    FirebaseStorage(storageBucket: 'gs://entrancescreen.appspot.com/');
+    // Obtain a list of the available cameras on the device.
+    final cameras = await availableCameras();
 
+    // Get a specific camera from the list of available cameras.
+    firstCamera = cameras[1];
+  }
   runApp(MyApp(camera: firstCamera, storage: storage));
 }
 
@@ -54,10 +58,13 @@ class MyApp extends StatelessWidget {
       bodyColor: Colors.white,
       displayColor: Colors.white,
     );
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
+
+    if (!kIsWeb) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]);
+    }
 
     return new ScopedModel<Appstate>(
         model: new Appstate(),
@@ -170,12 +177,20 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // generate background color considering the rain
     const fullColorAt = 5;
-    Color backgroundColor = Color.fromRGBO(
-        0,
-        0,
-        255,
-        [fullColorAt, widget.rainforecast.maxMillimeters(12) ?? 0].reduce(min) /
-            fullColorAt);
+
+    Color backgroundColor;
+
+    if (kIsWeb) {
+      backgroundColor = Colors.black;
+    } else {
+      backgroundColor = Color.fromRGBO(
+          0,
+          0,
+          255,
+          [fullColorAt, widget.rainforecast.maxMillimeters(12) ?? 0].reduce(
+              min) /
+              fullColorAt);
+    }
 
     if (_displayOff) {
       return Scaffold(

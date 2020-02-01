@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "entrancescreen"
+  },
+  "targets": {
+    "entrancescreen": {
+      "hosting": {
+        "entrancescreen-flutter": [
+          "entrancescreen-flutter"
+        ]
+      }
+    }
   }
 }
