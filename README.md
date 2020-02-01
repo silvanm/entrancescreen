@@ -1,10 +1,13 @@
 # Entrance-Screen - A info-screen with face recognition
 
-My first Flutter project.
+Combining an evaluation of Flutter, Google ML Kit, Azure Face Recognition with
+a useful gadget for our house: A app which tells me what to wear and notifies
+me if the babysitter is on time :-) Following my tradition of recycling old
+smartphones. This time a Huawei Nexus 6P.
 
-![wardrobe](docs/wardrobe-picture.jpg)
+[Click here for Web-version of the app](https://entrancescreen.firebaseapp.com/flutter)
 
-[Web-version of the app](https://https://entrancescreen.firebaseapp.com/flutter)
+![wardrobe](docs/wardrobe-picture.jpg) ![wardrobe from close](docs/wardrobe-close.jpg)
 
 ## Info-screen
 
@@ -23,20 +26,25 @@ Additional feature:
 
 ## Face reconization feature
 
-It also able to recognize faces using the [Azure Cognitive Face Service](https://azure.microsoft.com/en-us/services/cognitive-services/face/).
+As the front-facing camera is pointing right to our porch I am using it to continuously
+monitor it for known faces: If someone is detected, it notifies me via email.
 
+![mail](docs/email.png)
+ 
+A management interface allows to add new people and classify faces:
+
+![frontend](docs/frontend-screenshot.png)  
+
+## Architecture
+
+![architecture](docs/architecture.png)
 - The app uses the Google ML kit to detect faces on the device
 - The image is uploaded to Google Cloud Storage
-- A cloud function is triggered which sends the image to the Face detection service
+- A cloud function is triggered which sends the image to the 
+  [Azure Cognitive Face Service](https://azure.microsoft.com/en-us/services/cognitive-services/face/).
 - The result of the detection is stored in Firebase Database
 - A VueJS frontend allows to 
   - see the detected pictures
   - add new persons
   - add new faces to the persons
   
- ![frontend](docs/frontend-screenshot.png)
- 
- A mail is sent as soon as someone is being detected:
- 
- ![mail](docs/email.png)
- 

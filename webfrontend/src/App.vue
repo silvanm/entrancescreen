@@ -5,7 +5,7 @@
         <nav>
             <a href="/">Images</a>
             <a href="/persons">Manage Persons</a>
-            <a href="/flutter">Frontend</a></nav>
+            <a href="/flutter">Web-version of app</a></nav>
         <div>
             <router-view></router-view>
         </div>
@@ -38,7 +38,7 @@
         padding: 30px;
     }
 
-    nav a {
+    nav a, a {
         font-weight: bold;
         color: cornflowerblue;
         padding: 5px 5px 5px 0 ;

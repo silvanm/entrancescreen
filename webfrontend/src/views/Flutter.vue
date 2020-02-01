@@ -1,8 +1,10 @@
 <template>
     <div>
         <h2>View of the Web-App generated with Flutter</h2>
+
         <iframe src="https://entrancescreen-flutter.firebaseapp.com/">
         </iframe>
+        <p><a href="https://entrancescreen-flutter.firebaseapp.com/">Remove frame</a></p>
     </div>
 </template>
 <script>
