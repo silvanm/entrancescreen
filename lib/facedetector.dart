@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:firebase_ml_vision/firebase_ml_vision.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -30,7 +31,7 @@ class _FacedetectorState extends State<Facedetector> {
   Timer _timer;
   DateTime _lastUpload;
   DateTime _lastFaceDetected;
-  static const faceDetectionLifetime = 30;
+  static const faceDetectionLifetime = 20;
 
   @override
   void dispose() {
@@ -45,7 +46,7 @@ class _FacedetectorState extends State<Facedetector> {
     if (!kIsWeb) {
       _controller = CameraController(
         widget.camera,
-        ResolutionPreset.veryHigh,
+        ResolutionPreset.high,
       );
       _initializeControllerFuture = _controller.initialize();
       _timer = Timer(
@@ -53,6 +54,13 @@ class _FacedetectorState extends State<Facedetector> {
         takePicture,
       );
     }
+  }
+
+  void _sendHeartbeat() {
+    Firestore.instance
+        .collection('status')
+        .document('status')
+        .setData({'lastHeartbeat': new DateTime.now()});
   }
 
   void takePicture() async {
@@ -73,6 +81,8 @@ class _FacedetectorState extends State<Facedetector> {
 
       bool uploadRequired = false;
       String reasonForUpload = '';
+
+      _sendHeartbeat();
 
       // an arbirtrary high value
       int lastFaceDetectionSinceSeconds = 1000;
@@ -122,32 +132,10 @@ class _FacedetectorState extends State<Facedetector> {
       String filename = '${fmt.format(DateTime.now())}/${DateTime.now()}.jpg';
 
       if (uploadRequired) {
-        final StorageReference ref = widget.storage.ref().child(filename);
-        final StorageUploadTask uploadTask = ref.putFile(
-          imageFile,
-          StorageMetadata(
-            contentLanguage: 'en',
-            customMetadata: <String, String>{'reason': reasonForUpload},
-          ),
-        );
-        _lastUpload = DateTime.now();
-        StorageTaskSnapshot storageTaskSnapshot = await uploadTask.onComplete;
-        print('Uploaded picture $filename)');
-
-        if (ScopedModel.of<Appstate>(context).debug) {
-          final snackBar =
-              SnackBar(content: Text('Uploaded picture $filename)'));
-          Scaffold.of(context).showSnackBar(snackBar);
-        }
-        setState(() {
-          _tasks.add(uploadTask);
-        });
-        imageFile.delete();
-      } else {
-        imageFile.delete();
+        await _processUpload(filename, imageFile, reasonForUpload);
       }
+      imageFile.delete();
     } catch (e) {
-      // If an error occurs, log the error to the console.
       print(e);
     }
 
@@ -155,6 +143,29 @@ class _FacedetectorState extends State<Facedetector> {
       Duration(seconds: 1),
       takePicture,
     );
+  }
+
+  Future _processUpload(String filename, File imageFile, String reasonForUpload) async {
+      final StorageReference ref = widget.storage.ref().child(filename);
+    final StorageUploadTask uploadTask = ref.putFile(
+      imageFile,
+      StorageMetadata(
+        contentLanguage: 'en',
+        customMetadata: <String, String>{'reason': reasonForUpload},
+      ),
+    );
+    _lastUpload = DateTime.now();
+    StorageTaskSnapshot storageTaskSnapshot = await uploadTask.onComplete;
+    print('Uploaded picture $filename)');
+
+    if (ScopedModel.of<Appstate>(context).debug) {
+      final snackBar =
+          SnackBar(content: Text('Uploaded picture $filename)'));
+      Scaffold.of(context).showSnackBar(snackBar);
+    }
+    setState(() {
+      _tasks.add(uploadTask);
+    });
   }
 
   @override

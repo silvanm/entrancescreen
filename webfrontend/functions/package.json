@@ -4,8 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "functions-framework --target=onnewimage --signature-type=event",
-    "lint": "eslint"
+    "start": "functions-framework --target=onnewimage --signature-type=event"
   },
   "author": "",
   "license": "ISC",
@@ -15,7 +14,9 @@
     "@google-cloud/storage": "^4.2.0",
     "axios": "^0.19.1",
     "firebase-admin": "^8.9.1",
-    "firebase-functions": "^3.3.0"
+    "firebase-functions": "^3.3.0",
+    "sparkpost": "^2.1.4",
+    "moment": "^2.24.0"
   },
   "engines": {
     "node": "8"
