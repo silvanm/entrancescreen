@@ -10,7 +10,7 @@
             height:
             (this.selection.bottomright[1] - this.selection.topleft[1]) + 'px',
             }"></div>
-            <div v-on:click="showFull=false">Close</div>
+            <div id="close-button" v-on:click="showFull=false">Close</div>
             <img ref="fullimage" :src="obj.url" v-on:load="updateImageScale();analyze()"
                  v-on:click="showFull=false">
             <person-selector v-if="selectingPerson"
@@ -18,15 +18,22 @@
                              :y="this.selection.bottomright[1]"
                              v-on:personSelect="personSelected($event)"
             ></person-selector>
-            <button @click="identify" v-if="detectedFaceId">Identify</button>
-            <pre>{{statusMessage}}</pre>
+            <div class="below-full-image" style="padding: 5px;">
+                <button @click="identify" v-if="detectedFaceId">Identify</button>
+                <p>Message from Detection:</p>
+                <pre>{{statusMessageDetection}}</pre>
+                <p>Message from Identification:</p>
+                <pre>{{statusMessageIdentification}}</pre>
+            </div>
         </div>
-        <img class="thumbnail" :src="obj.url" v-on:click="showFull=true;"
+        <div class="thumbnail-container">
+            <img :src="obj.url" v-on:click="showFull=true;"
+            >
+            <div class="created-at">{{displayDate}}<br>
+                {{identifiedPerson}}
+            </div>
+        </div>
 
-        >
-        <div class="created-at">{{displayDate}}
-            {{identifiedPerson}}
-        </div>
     </div>
 </template>
 
@@ -49,7 +56,8 @@
     data() {
       return {
         showFull: false,
-        statusMessage: 'loading...',
+        statusMessageDetection: 'loading...',
+        statusMessageIdentification: '',
         dragging: false,
         selection: {
           topleft: [0, 0],
@@ -121,8 +129,7 @@
       analyze() {
         faceDetect(this.obj, db,
           (data) => {
-            // Show formatted JSON on webpage.
-            this.statusMessage = data.data;
+            this.statusMessageDetection = data.data;
             if (data.data.length === 1) {
               let r = data.data[0].faceRectangle;
               this.detectedFaceId = data.data[0].faceId;
@@ -140,7 +147,7 @@
       async personSelected(personId) {
         const response = await azureRequest(`persongroups/${config.persongroupId}/persons/${personId}/persistedFaces`,
           {detectionModel: 'detection_02'}, {url: this.obj.url});
-        this.statusMessage = response.data.statusMessage;
+        this.statusMessageIdentification = response.data.statusMessage;
         this.selectingPerson = false;
         this.selectionClass = 'sent';
 
@@ -197,7 +204,7 @@
         response.data[0].candidates.forEach((o) => {
           out += this.personList.getById(o.personId).name + ': ' + o.confidence + '\n';
         });
-        this.statusMessage = out;
+        this.statusMessageIdentification = out;
       }
     }
   };
@@ -205,23 +212,26 @@
 
 <style scoped lang="scss">
     .image {
-        padding: 5px;
         min-height: 100px;
+    }
 
-        &.detected {
-            border: 2px solid yellow;
-        }
-
-        &.identified {
-            border: 2px solid green;
+    .identified {
+        img {
+            opacity: 1 !important;
         }
     }
 
-    img.thumbnail {
-        width: 100px;
-        height: 150px;
-        background-color: lightgray;
-        cursor: pointer;
+    .thumbnail-container {
+        position: relative;
+        background-color: black;
+
+        img {
+            width: 100px;
+            height: 150px;
+            background-color: lightgray;
+            cursor: pointer;
+            opacity: 0.5;
+        }
     }
 
     .full-view img {
@@ -235,7 +245,7 @@
         z-index: 5;
     }
 
-    .full-view div {
+    #close-button {
         right: 0;
         position: absolute;
         background-color: white;
@@ -268,6 +278,12 @@
     }
 
     .created-at {
+        position: absolute;
+        top: 0;
+        padding: 2px;
+        z-index: 2;
         font-size: 10px;
+        color: white;
+        font-weight: bold;
     }
 </style>

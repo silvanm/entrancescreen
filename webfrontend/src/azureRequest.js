@@ -22,7 +22,7 @@ function buildUrl(url, parameters) {
  * @returns {AxiosPromise}
  */
 function azureRequest(activity, params, data, method = 'post') {
-  let subscriptionKey = 'c176a67cfe7b4617b144a0bf5414fe01';
+  let subscriptionKey = process.env.VUE_APP_AZURE_KEY;
 
   let uriBase =
     `https://entrancescreen.cognitiveservices.azure.com/face/v1.0/${activity}`;
@@ -53,23 +53,6 @@ function faceDetect(obj, db, oncomplete) {
 
   azureRequest('detect', params, {url: obj.url})
     .then((data) => {
-
-      let firestoreObj = {
-        filename: obj.filename,
-        createdAt: obj.createdAt,
-        sentAt: new Date(),
-        detectData: data.data,
-        status: 'detected'
-      };
-
-      // create new record in firebase
-      db.collection('faceimages')
-        .add(firestoreObj)
-        .then(async (item) => {
-          obj.firestoreObj = firestoreObj;
-          obj.firestoreObj.id = item.id;
-        }); // 7Ew4ny2WFUzv2mjPNoOa
-
       oncomplete(data);
     });
 

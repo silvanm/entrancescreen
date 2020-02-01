@@ -1,6 +1,6 @@
 <template>
     <div>
-        <datepicker :inline="true" v-model="date" v-on:input="updateImages"></datepicker>
+        <datepicker calendar-class="datepicker" :inline="true" v-model="date" v-on:input="updateImages"></datepicker>
         <div class="snapshot" v-bind:key="img.id" v-for="img in images">
             <face-image :person-list="personList" :obj="img"/>
         </div>
@@ -65,8 +65,15 @@
   };
 </script>
 
-<style scoped>
+<style lang="scss">
     .snapshot {
         display: inline-block;
+    }
+
+    .datepicker {
+        float: left;
+        background-color: black !important;
+        border: 1px solid gray !important;
+        margin-right: 5px;
     }
 </style>

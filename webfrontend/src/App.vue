@@ -1,28 +1,41 @@
 <template>
-  <div id="app">
-    <h1>Entrance-Screen</h1>
-    <nav><a href="/">Images</a> <a href="/persons">Persons</a></nav>
-    <router-view></router-view>
-  </div>
+    <div id="app">
+        <h1>Erlenstrasse 3C - Entrance-App</h1>
+        <nav><a href="/">Images</a> <a href="/persons">Manage Persons</a></nav>
+        <div>
+            <router-view></router-view>
+        </div>
+    </div>
 </template>
 
-<style>
-#app {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+<style lang="scss">
+    body {
+        background-color: black;
+        color: white;
+        margin: 10px;
+    }
 
-#nav {
-  padding: 30px;
-}
+    #app {
+        font-family: Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
 
-#nav a {
-  font-weight: bold;
-  color: #2c3e50;
-}
+        > div {
+            margin: 20px 0;
+        }
+    }
 
-#nav a.router-link-exact-active {
-  color: #42b983;
-}
+    #nav {
+        padding: 30px;
+    }
+
+    nav a {
+        font-weight: bold;
+        color: cornflowerblue;
+        padding: 5px 5px 5px 0 ;
+    }
+
+    #nav a.router-link-exact-active {
+        color: #42b983;
+    }
 </style>
