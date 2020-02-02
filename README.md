@@ -1,7 +1,7 @@
 # Entrance-Screen - A info-screen with face recognition
 
 Combining an evaluation of Flutter, Google ML Kit, Azure Face Recognition with
-a useful gadget for our house: A app which tells me everything I need to know
+a useful gadget for our house: An app that tells me everything I need to know
 before I leave the house. And it recognizes who is entering the house.
 
 Following my tradition of recycling old
@@ -26,7 +26,7 @@ Additional feature:
 - if the light sensor reports darkness, the display turns off. Reason: The screen can be seen
   through the window. We don't want to attract curious people during the night
 
-## Face reconization feature
+## Face recognition feature
 
 As the front-facing camera is pointing right to our porch I am using it to continuously
 monitor it for known faces: If someone is detected, it notifies me via email.
@@ -49,4 +49,3 @@ A management interface allows to add new people and classify faces:
   - see the detected pictures
   - add new persons
   - add new faces to the persons
-  
