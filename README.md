@@ -1,8 +1,10 @@
 # Entrance-Screen - A info-screen with face recognition
 
 Combining an evaluation of Flutter, Google ML Kit, Azure Face Recognition with
-a useful gadget for our house: A app which tells me what to wear and notifies
-me if the babysitter is on time :-) Following my tradition of recycling old
+a useful gadget for our house: A app which tells me everything I need to know
+before I leave the house. And it recognizes who is entering the house.
+
+Following my tradition of recycling old
 smartphones. This time a Huawei Nexus 6P.
 
 [Click here for Web-version of the app](https://entrancescreen.firebaseapp.com/flutter)
